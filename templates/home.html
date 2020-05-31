@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>
+            Golang Sudoku Project
+        </title>
+        <meta charset="UTF-8">
+        <style>
+            body {
+                background-color: wheat;
+            }
+
+            .header {
+                font-family: 'Work Sans', sans-serif;
+                color: black;
+                text-align: center;
+                text-decoration: underline;
+            }
+
+            .hvr-rectangle-out {
+                font-family: 'Work Sans', sans-serif;
+                display: inline-table;
+                vertical-align: middle;
+                -webkit-transform: perspective(1px) translateZ(0);
+                transform: perspective(1px) translateZ(0);
+                box-shadow: 0 0 1px rgba(0, 0, 0, 0);
+                position: relative;
+                -webkit-transition-property: color;
+                transition-property: color;
+                -webkit-transition-duration: 0.1s;
+                transition-duration: 0.1s;
+                border-radius: 25px;
+                border: 1px;
+                padding: 10px 20px 10px 20px;
+                font-size: large;
+            }
+
+            .hvr-rectangle-out:before {
+                padding: 10px 20px 10px 20px;
+                border-radius: 25px;
+                content: "";
+                position: absolute;
+                z-index: -1;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: brown;
+                -webkit-transform: scale(0);
+                transform: scale(0);
+                -webkit-transition-property: transform;
+                transition-property: transform;
+                -webkit-transition-duration: 0.1s;
+                transition-duration: 0.1s;
+                -webkit-transition-timing-function: ease-out;
+                transition-timing-function: ease-out;
+            }
+
+            .hvr-rectangle-out:hover, .hvr-rectangle-out:focus, .hvr-rectangle-out:active {
+                color: white;
+            }
+
+            .hvr-rectangle-out:hover:before, .hvr-rectangle-out:focus:before, .hvr-rectangle-out:active:before {
+                -webkit-transform: scale(1);
+                transform: scale(1);
+            }
+
+            .cell input {
+                display: inline-block;
+                border: none;
+                width: 50px;
+                height: 50px;
+                font-family: 'Work Sans', sans-serif;
+                font-size: xx-large;
+                text-align: center;
+                padding: 0%;
+            }
+
+            .cell input:hover {
+                background-color: rgb(207, 207, 207);
+                opacity: 100%;
+            }
+
+            #incorrect-cell input {
+                background-color: rgb(236, 149, 149);
+            }
+
+            #user-color-input {
+                color: rgb(63, 121, 228);
+            }
+
+            #no-user-input {
+                color: black;
+            }
+
+            td {
+                height:40px;
+                width:40px;
+                border:1px solid black;
+                text-align:center;
+                padding: 0%;
+            }
+
+            td:first-child {
+                border-left:solid;
+            }
+
+            td:nth-child(3n) {
+                border-right:solid ;
+            }
+
+            tr:first-child {
+                border-top:solid;
+            }
+
+            tr:nth-child(3n) td {
+                border-bottom:solid ;
+            }
+
+            .buttons {
+                padding: 20px 20px 20px 20px;
+                text-align: center;
+            }
+
+            #sudoku-table {
+                width: 50%;
+                margin: 0 auto;
+            }
+
+            #game {
+                width: 600px;
+                height: 600px;
+
+                width: 50%;
+                margin: 0 auto;
+            }
+        </style>
+        <link href="https://fonts.googleapis.com/css2?family=Work+Sans&display=swap" rel="stylesheet">
+    </head>
+
+    <body>
+        <div class="header">
+            <h1>
+                Go-Lang Sudoku Website
+            </h1>
+            <h3>
+                Made by Kaleb Burrow
+            </h3>
+        </div>
+
+        <div id="game">
+            <div class="sudoku-board">
+                <table id="sudoku-table" style="border-collapse: collapse;"></table>
+            </div>
+
+            <div class="buttons">
+                <button type="button" value="Solve" class="hvr-rectangle-out">Solve</button>
+                <button type="button" value="Check" class="hvr-rectangle-out">Check</button>
+                <br><br>
+                <button type="button" value="Easy" class="hvr-rectangle-out">Easy</button>
+                <button type="button" value="Medium" class="hvr-rectangle-out">Medium</button>
+                <button type="button" value="Hard" class="hvr-rectangle-out">Hard</button>
+                <button type="button" value="Expert" class="hvr-rectangle-out">Expert</button>
+            </div>
+        </div>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.min.js"></script>
+        <script type="text/javascript">
+            var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+            function fillBoard(board) {
+                var inputs = document.getElementsByClassName("sudoku-input");
+                var k = 0;
+                var l = 0;
+                for (var i = 0; i < inputs.length; i++) {
+                    var input = inputs[i];
+                    if (board[k][l] != 0) {
+                        input.value = board[k][l];
+                        input.readOnly = true;
+                        input.id = "no-user-input"
+                    } else {
+                        input.value = "";
+                        input.readOnly = false;
+                        input.id = "user-color-input"
+                    }
+
+                    l+=1;
+                    if (l==9) {
+                        l=0;
+                        k+=1;
+                    }
+                }
+            }
+
+            function solve() {
+                console.log("solve");
+                socket.emit('solve', JSON.stringify(getStartingBoard()), function() {});
+            }
+
+            function check() {
+                var inputs = document.getElementsByClassName("sudoku-input");
+                for (var i = 0; i < inputs.length; i++) {
+                    var input = inputs[i];
+                    var value = input.value;
+                    if (isNaN(value) || value < 1 || value > 9) {
+                        input.value = ""
+                    }
+                }
+
+                var board = getBoard();
+                socket.emit('check', JSON.stringify(board), function() {});
+            }
+
+            function easy() {
+                socket.emit('easy', function() {});
+            }
+
+            function medium() {
+                socket.emit('medium', function() {});
+            }
+
+            function hard() {
+                socket.emit('hard', function() {});
+            }
+
+            function expert() {
+                socket.emit('expert', function() {});
+            }
+
+            function boardFilled() {
+                var inputs = document.getElementsByClassName("sudoku-input");
+                for (var i = 0; i < inputs.length; i++) {
+                    var input = inputs[i];
+                    var value = Number(input.value);
+                    if (isNaN(value) || value < 1 || value > 9) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            function getBoard() {
+                var board = [[],[],[],[],[],[],[],[],[]]
+                var inputs = document.getElementsByClassName("sudoku-input");
+                var k = 0
+                var l = 0
+                for (var i = 0; i < inputs.length; i++) {
+                    var input = inputs[i];
+                    var value = Number(input.value);
+                    if (isNaN(value) || value < 1 || value > 9) {
+                        board[k][l] = 0;
+                    } else {
+                        board[k][l] = value;
+                    }
+
+                    l+=1;
+                    if (l==9) {
+                        l=0;
+                        k+=1;
+                    }
+                }
+
+                return board;
+            }
+
+            function getStartingBoard() {
+                var board = [[],[],[],[],[],[],[],[],[]]
+                var inputs = document.getElementsByClassName("sudoku-input");
+                var k = 0
+                var l = 0
+                for (var i = 0; i < inputs.length; i++) {
+                    var input = inputs[i];
+                    var value = Number(input.value);
+                    if (input.readOnly) {
+                        board[k][l] = value;
+                    } else {
+                        board[k][l] = 0;
+                    }
+
+                    l+=1;
+                    if (l==9) {
+                        l=0;
+                        k+=1;
+                    }
+                }
+
+                return board;
+            }
+
+            function getBoardTDs() {
+                var board = [[],[],[],[],[],[],[],[],[]]
+                var cells = document.getElementsByClassName("cell");
+                var k = 0
+                var l = 0
+                for (var i = 0; i < cells.length; i++) {
+                    var cell = cells[i];
+                    var value = Number(cell.value);
+                    if (isNaN(value) || value < 1 || value > 9) {
+                        board[k][l] = cell;
+                    } else {
+                        board[k][l] = cell;
+                    }
+
+                    l+=1;
+                    if (l==9) {
+                        l=0;
+                        k+=1;
+                    }
+                }
+
+                return board;
+            }
+
+            function populateTable() {
+                var i, j, tr, td, input;
+                var table = document.querySelector("div.sudoku-board table");
+                var tbody = document.createElement("tbody");
+
+                table.appendChild(tbody);
+                for (i = 0; i < 9; i++) {
+                    tr = document.createElement("tr");
+                    tbody.appendChild(tr);
+                    for (j = 0; j < 9; j++) {
+                        td = document.createElement("td");
+                        td.className = "cell";
+                        td.id = "correct-cell"
+                        tr.appendChild(td);
+                        input = document.createElement("input");
+                        input.className = "sudoku-input";
+                        input.type = "text";
+                        input.size = 1;
+                        input.maxLength = 1;
+                        td.appendChild(input);
+                    }
+                }
+
+                document.querySelector("button[value=Solve]").addEventListener("click", solve);
+                document.querySelector("button[value=Check]").addEventListener("click", check);
+                document.querySelector("button[value=Easy]").addEventListener("click", easy);
+                document.querySelector("button[value=Medium]").addEventListener("click", medium);
+                document.querySelector("button[value=Hard]").addEventListener("click", hard);
+                document.querySelector("button[value=Expert]").addEventListener("click", expert);
+            }
+
+            socket.on("connect", function() {});
+
+            socket.on("check board", function(location, loc1, loc2, board) {
+                var cells = document.getElementsByClassName("cell");
+                for (var i = 0; i < cells.length; i++) {
+                    var cell = cells[i];
+                    cell.id = "correct-cell"
+                }
+
+                boardTDs = getBoardTDs();
+                if (location == "column") {
+                    for (var i = 0; i < 9; i++) {
+                        boardTDs[i][loc1].id = "incorrect-cell";
+                    }
+                } else if (location == "row") {
+                    for (var j = 0; j < 9; j++) {
+                        boardTDs[loc1][j].id = "incorrect-cell";
+                    }
+                } else if (location == "matrix") {
+                    for (var i = loc1; i < loc1+3; i++) {
+                        for (var j = loc2; j < loc2+3; j++) {
+                            boardTDs[i][j].id = "incorrect-cell";
+                        }
+                    }
+                } else {
+                    var cells = document.getElementsByClassName("cell");
+                    for (var i = 0; i < cells.length; i++) {
+                        var cell = cells[i];
+                        cell.id = "correct-cell"
+                    }
+                }
+
+
+                if (boardFilled()) {
+                    window.alert("You solved the sudoku! Good job!!! I knew you could do it.")
+                    socket.emit("random", function() {});
+                }
+            });
+
+            socket.on("solved board", function(board) {
+                var inputs = document.getElementsByClassName("sudoku-input");
+                var k = 0
+                var l = 0
+                for (var i = 0; i < inputs.length; i++) {
+                    var input = inputs[i];
+                    if (!input.readOnly) {
+                        input.value = board[k][l];
+                    }
+
+                    l+=1;
+                    if (l==9) {
+                        l=0;
+                        k+=1;
+                    }
+                }
+            });
+
+            socket.on("random board", function(board) {
+                fillBoard(board)
+            });
+
+            socket.on("easy board", function(board) {
+                fillBoard(board)
+            });
+
+            socket.on("medium board", function(board) {
+                fillBoard(board)
+            });
+
+            socket.on("hard board", function(board) {
+                fillBoard(board)
+            });
+
+            socket.on("expert board", function(board) {
+                fillBoard(board)
+            });
+
+            populateTable();
+            socket.emit("random", function() {});
+        </script>
+    </body>
+</html>
