@@ -19,8 +19,8 @@ When you check, and it detects and error:
 
 I would like any feedback on this, and to optimize anything!
 
-[website] https://cdn.discordapp.com/attachments/680870507930714138/721011033841336320/unknown.png
+[website]: https://cdn.discordapp.com/attachments/680870507930714138/721011033841336320/unknown.png "Website"
 
-[solved] https://cdn.discordapp.com/attachments/680870507930714138/721010671621242972/unknown.png
+[solved]: https://cdn.discordapp.com/attachments/680870507930714138/721010671621242972/unknown.png "Solved"
 
-[error] https://cdn.discordapp.com/attachments/680870507930714138/721010523797192755/unknown.png
+[error]: https://cdn.discordapp.com/attachments/680870507930714138/721010523797192755/unknown.png "Error"
